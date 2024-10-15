@@ -11,13 +11,7 @@ const swaggerJsDoc = require("swagger-jsdoc");
 dotenv.config();
 
 const app = express();
-app.use(
-  cors({
-    origin: "*", // Allow all origins
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE", // Allow all HTTP methods
-    allowedHeaders: "Content-Type,Authorization", // Allow specific headers
-  })
-);
+app.use(cors());
 
 // Middleware
 app.use(bodyParser.json());
