@@ -1,9 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const announcementController = require("../controller/Announcement");
-
-// Create a new announcement
-router.post("/", announcementController.createAnnouncement);
+const announcementController = require("../controller/announcementController");
 
 // Get announcements for a specific department
 router.get(
@@ -11,6 +8,7 @@ router.get(
   announcementController.getAnnouncementsByDepartment
 );
 
-// Add more routes as needed
+// Post a new announcement
+router.post("/", announcementController.createAnnouncement);
 
 module.exports = router;

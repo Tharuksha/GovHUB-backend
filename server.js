@@ -361,12 +361,14 @@ const staffRoutes = require("./routes/Staff");
 const ticketRoutes = require("./routes/Ticket");
 const departmentRoutes = require("./routes/Department");
 const DashboardRoutes = require("./routes/Dashboard");
+const announcementsRouter = require("./routes/announcements");
 
 app.use("/api/customers", customerRoutes);
 app.use("/api/staff", staffRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/departments", departmentRoutes);
 app.use("/api/Dashboard", DashboardRoutes);
+app.use("/api/announcements", announcementsRouter);
 
 // Root endpoint for basic information
 app.get("/", (req, res) => {
