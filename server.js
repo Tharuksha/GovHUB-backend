@@ -362,6 +362,7 @@ const ticketRoutes = require("./routes/Ticket");
 const departmentRoutes = require("./routes/Department");
 const DashboardRoutes = require("./routes/Dashboard");
 const announcementsRouter = require("./routes/announcements");
+const messageRoutes = require("./routes/messageRoutes");
 
 app.use("/api/customers", customerRoutes);
 app.use("/api/staff", staffRoutes);
@@ -369,6 +370,7 @@ app.use("/api/tickets", ticketRoutes);
 app.use("/api/departments", departmentRoutes);
 app.use("/api/Dashboard", DashboardRoutes);
 app.use("/api/announcements", announcementsRouter);
+app.use("/api/messages", messageRoutes);
 
 // Root endpoint for basic information
 app.get("/", (req, res) => {
