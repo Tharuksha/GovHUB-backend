@@ -14,6 +14,13 @@ exports.getAnnouncementsByDepartment = async (req, res) => {
 };
 
 exports.createAnnouncement = async (req, res) => {
+  // Check if the user is a department head
+  if (req.body.userRole !== "dhead") {
+    return res
+      .status(403)
+      .json({ message: "Only department heads can create announcements" });
+  }
+
   const announcement = new Announcement({
     departmentID: req.body.departmentID,
     content: req.body.content,
@@ -37,7 +44,8 @@ exports.deleteAnnouncement = async (req, res) => {
 
     // Check if the user is authorized to delete the announcement
     if (
-      announcement.departmentID.toString() !== req.user.departmentID.toString()
+      req.body.userRole !== "dhead" ||
+      announcement.departmentID.toString() !== req.body.departmentID
     ) {
       return res
         .status(403)
