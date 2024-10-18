@@ -361,12 +361,14 @@ const staffRoutes = require("./routes/Staff");
 const ticketRoutes = require("./routes/Ticket");
 const departmentRoutes = require("./routes/Department");
 const DashboardRoutes = require("./routes/Dashboard");
+const announcementRoutes = require("./routes/Announcement");
 
 app.use("/api/customers", customerRoutes);
 app.use("/api/staff", staffRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/departments", departmentRoutes);
 app.use("/api/Dashboard", DashboardRoutes);
+app.use("/api/announcements", announcementRoutes);
 
 // Root endpoint for basic information
 app.get("/", (req, res) => {
@@ -391,6 +393,7 @@ app.listen(PORT, () => {
   console.log("\t-> /api/tickets");
   console.log("\t-> /api/departments");
   console.log("\t-> /api/Dashboard");
+  console.log("\t-> /api/announcements");
   console.log(
     `\nSwagger documentation available at https://govhub-backend.tharuksha.com/api-docs`
   );
