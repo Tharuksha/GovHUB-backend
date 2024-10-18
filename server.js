@@ -368,7 +368,7 @@ app.use("/api/staff", staffRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/departments", departmentRoutes);
 app.use("/api/Dashboard", DashboardRoutes);
-app.use("/api/announcements", announcementRoutes);
+app.use("/api/dashboard/announcements", announcementRoutes);
 
 // Root endpoint for basic information
 app.get("/", (req, res) => {
