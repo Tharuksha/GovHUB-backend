@@ -383,6 +383,12 @@ app.use((err, req, res, next) => {
     .json({ message: "Something went wrong!", error: err.message });
 });
 
+app._router.stack.forEach(function (r) {
+  if (r.route && r.route.path) {
+    console.log(r.route.path);
+  }
+});
+
 // Start the server
 app.listen(PORT, () => {
   console.log("\n###################################");
