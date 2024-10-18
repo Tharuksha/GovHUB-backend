@@ -1,14 +1,17 @@
 const express = require("express");
 const router = express.Router();
 const announcementController = require("../controller/announcementController");
+const authMiddleware = require("../middleware/authMiddleware"); // Assuming you have an auth middleware
 
-// Get announcements for a specific department
 router.get(
   "/:departmentID",
   announcementController.getAnnouncementsByDepartment
 );
-
-// Post a new announcement
-router.post("/", announcementController.createAnnouncement);
+router.post("/", authMiddleware, announcementController.createAnnouncement);
+router.delete(
+  "/:id",
+  authMiddleware,
+  announcementController.deleteAnnouncement
+);
 
 module.exports = router;
