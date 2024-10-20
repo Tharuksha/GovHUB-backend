@@ -21,7 +21,7 @@ const ticketSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["Pending", "Solved", "Rejected"],
+    enum: ["Pending", "Approved", "Rejected"],
     default: "Pending",
   },
   createdDate: {

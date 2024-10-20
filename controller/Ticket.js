@@ -181,7 +181,7 @@ class TicketController {
 
       Object.assign(ticket, req.body);
 
-      if (req.body.status === "Solved" || req.body.status === "Rejected") {
+      if (req.body.status === "Approved" || req.body.status === "Rejected") {
         ticket.closedDate = new Date();
       }
 

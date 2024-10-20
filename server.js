@@ -79,7 +79,7 @@ const swaggerOptions = {
             },
             status: {
               type: "string",
-              enum: ["Pending", "Solved"],
+              enum: ["Pending", "Approved", "Rejected"],
               description: "Current status of the ticket",
             },
             createdDate: {
@@ -124,7 +124,7 @@ const swaggerOptions = {
             },
             status: {
               type: "string",
-              enum: ["Pending", "Solved"],
+              enum: ["Pending", "Approved", "Rejected"],
               description: "Current status of the ticket",
             },
             createdDate: {
@@ -176,7 +176,7 @@ const swaggerOptions = {
             },
             status: {
               type: "string",
-              enum: ["Pending", "Solved"],
+              enum: ["Pending", "Approved", "Rejected"],
               description: "Current status of the ticket",
             },
             createdDate: {
@@ -192,7 +192,7 @@ const swaggerOptions = {
             // Add other relevant properties as needed
           },
           example: {
-            status: "Solved",
+            status: "Approved",
             closedDate: "2024-10-02T15:30:00Z",
             // Add other example properties as needed
           },
@@ -314,7 +314,10 @@ const swaggerOptions = {
             description: { type: "string" },
             staffID: { type: "string" },
             departmentID: { type: "string" },
-            status: { type: "string", enum: ["Pending", "Solved"] },
+            status: {
+              type: "string",
+              enum: ["Pending", "Approved", "Rejected"],
+            },
             createdDate: { type: "string", format: "date-time" },
             closedDate: { type: "string", format: "date-time" },
             // Add other relevant properties as needed
