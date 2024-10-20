@@ -15,6 +15,19 @@ const ticketController = require("../controller/Ticket");
  *   post:
  *     summary: Add a new ticket
  *     tags: [Tickets]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/TicketInput'
+ *     responses:
+ *       201:
+ *         description: Ticket created successfully
+ *       400:
+ *         description: Error creating ticket
+ *       500:
+ *         description: Internal server error
  */
 router.post("/", ticketController.addTicket);
 
@@ -24,6 +37,11 @@ router.post("/", ticketController.addTicket);
  *   get:
  *     summary: Retrieve a list of all tickets
  *     tags: [Tickets]
+ *     responses:
+ *       200:
+ *         description: A list of tickets
+ *       500:
+ *         description: Internal server error
  */
 router.get("/", ticketController.getTickets);
 
@@ -33,6 +51,19 @@ router.get("/", ticketController.getTickets);
  *   get:
  *     summary: Retrieve a single ticket by ID
  *     tags: [Tickets]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: A single ticket
+ *       404:
+ *         description: Ticket not found
+ *       500:
+ *         description: Internal server error
  */
 router.get("/:id", ticketController.getTicketById);
 
@@ -42,6 +73,25 @@ router.get("/:id", ticketController.getTicketById);
  *   put:
  *     summary: Update an existing ticket
  *     tags: [Tickets]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/TicketUpdateInput'
+ *     responses:
+ *       200:
+ *         description: Ticket updated successfully
+ *       404:
+ *         description: Ticket not found
+ *       500:
+ *         description: Internal server error
  */
 router.put("/:id", ticketController.updateTicket);
 
@@ -51,6 +101,32 @@ router.put("/:id", ticketController.updateTicket);
  *   put:
  *     summary: Reject a ticket
  *     tags: [Tickets]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - rejectionReason
+ *             properties:
+ *               rejectionReason:
+ *                 type: string
+ *               staffID:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Ticket rejected successfully
+ *       404:
+ *         description: Ticket not found
+ *       500:
+ *         description: Internal server error
  */
 router.put("/:id/reject", ticketController.rejectTicket);
 
@@ -60,7 +136,43 @@ router.put("/:id/reject", ticketController.rejectTicket);
  *   delete:
  *     summary: Delete a ticket by ID
  *     tags: [Tickets]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Ticket deleted successfully
+ *       404:
+ *         description: Ticket not found
+ *       500:
+ *         description: Internal server error
  */
 router.delete("/:id", ticketController.deleteTicket);
+
+/**
+ * @swagger
+ * /api/tickets/recentRejected/{staffId}:
+ *   get:
+ *     summary: Retrieve recent rejected tickets for a staff member
+ *     tags: [Tickets]
+ *     parameters:
+ *       - in: path
+ *         name: staffId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: A list of recent rejected tickets
+ *       500:
+ *         description: Internal server error
+ */
+router.get(
+  "/recentRejected/:staffId",
+  ticketController.getRecentRejectedTickets
+);
 
 module.exports = router;

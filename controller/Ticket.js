@@ -216,8 +216,11 @@ class TicketController {
    *             properties:
    *               rejectionReason:
    *                 type: string
+   *               staffID:
+   *                 type: string
    *           example:
    *             rejectionReason: "Issue cannot be reproduced"
+   *             staffID: "60c72b2f9b1e8c001f5f7c6f"
    *     responses:
    *       200:
    *         description: Ticket rejected successfully
@@ -240,7 +243,7 @@ class TicketController {
    */
   async rejectTicket(req, res) {
     const { id } = req.params;
-    const { rejectionReason } = req.body;
+    const { rejectionReason, staffID } = req.body;
 
     if (!rejectionReason) {
       return res
@@ -255,6 +258,7 @@ class TicketController {
       ticket.status = "Rejected";
       ticket.rejectionReason = rejectionReason;
       ticket.closedDate = new Date();
+      if (staffID) ticket.staffID = staffID;
 
       await ticket.save();
       res.json({ success: true, message: "Ticket rejected successfully" });
@@ -304,6 +308,50 @@ class TicketController {
       if (!ticket) return res.status(404).json({ message: "Ticket not found" });
 
       res.json({ success: true, message: "Ticket deleted successfully" });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/tickets/recentRejected/{staffId}:
+   *   get:
+   *     summary: Retrieve recent rejected tickets for a staff member
+   *     tags: [Tickets]
+   *     parameters:
+   *       - in: path
+   *         name: staffId
+   *         schema:
+   *           type: string
+   *         required: true
+   *         description: The staff ID
+   *     responses:
+   *       200:
+   *         description: A list of recent rejected tickets
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: array
+   *               items:
+   *                 $ref: '#/components/schemas/Ticket'
+   *       500:
+   *         description: Internal server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   */
+  async getRecentRejectedTickets(req, res) {
+    const { staffId } = req.params;
+    try {
+      const recentRejectedTickets = await Ticket.find({
+        staffID: staffId,
+        status: "Rejected",
+      })
+        .sort({ closedDate: -1 })
+        .limit(5);
+      res.json(recentRejectedTickets);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
