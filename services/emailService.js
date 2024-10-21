@@ -56,7 +56,7 @@ const generateEmailTemplate = (content, recipientEmail) => {
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td style="text-align: center; padding-bottom: 20px;">
-                  <img src="https://example.com/gov-hub-logo.png" alt="Gov Hub Logo" style="max-width: 150px;">
+                  <img src="https://i.ibb.co/vBkZkcV/logo.png" alt="Gov Hub Logo" style="max-width: 150px;">
                 </td>
               </tr>
               <tr>
@@ -100,7 +100,7 @@ const sendWelcomeEmail = async (to, name) => {
     </ul>
     <p style="margin-bottom: 20px;">To get started, simply log in to your account and explore the dashboard.</p>
     <a href="https://user.tharuksha.com/login" style="display: inline-block; padding: 12px 20px; background-color: #4a90e2; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold;">Log In to Gov Hub</a>
-    <p style="margin-top: 30px;">If you have any questions or need assistance, our support team is always here to help. Feel free to reach out to us at support@govhub.example.com.</p>
+    <p style="margin-top: 30px;">If you have any questions or need assistance, our support team is always here to help. Feel free to reach out to us at tharukshawickramarachchi@gmail.com.</p>
     <p style="margin-bottom: 0;">Best regards,<br>The Gov Hub Team</p>
   `;
 
