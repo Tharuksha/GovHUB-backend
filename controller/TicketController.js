@@ -1,36 +1,8 @@
+// controllers/TicketController.js
+
 const { Ticket } = require("../model/TicketModel");
-const { Customer } = require("../model/CustomerModel");
-const { Department } = require("../model/DepartmentModel");
-const { sendTicketStatusUpdateEmail } = require("../services/emailService");
 
 class TicketController {
-  /**
-   * Utility function to handle ticket email notifications
-   * @private
-   */
-  async #sendTicketNotification(customerId, ticketData, departmentId) {
-    try {
-      const customer = await Customer.findById(customerId);
-      const department = await Department.findById(departmentId);
-
-      if (customer && customer.emailAddress) {
-        await sendTicketStatusUpdateEmail(customer.emailAddress, {
-          ticketId: ticketData._id,
-          status: ticketData.status,
-          department: department
-            ? department.departmentName
-            : "Unknown Department",
-          issueDescription: ticketData.issueDescription,
-          feedback: ticketData.feedback,
-          rejectionReason: ticketData.rejectionReason,
-          appointmentDate: ticketData.appointmentDate,
-        });
-      }
-    } catch (error) {
-      console.error("Error sending ticket notification:", error);
-    }
-  }
-
   /**
    * @swagger
    * /api/tickets:
@@ -63,24 +35,20 @@ class TicketController {
    *           application/json:
    *             schema:
    *               $ref: '#/components/schemas/ErrorResponse'
+   *       500:
+   *         description: Internal server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
    */
   async addTicket(req, res) {
     const ticket = new Ticket(req.body);
     try {
       await ticket.save();
-
-      // Send initial notification
-      await this.#sendTicketNotification(
-        ticket.customerID,
-        ticket,
-        ticket.departmentID
-      );
-
-      res.status(201).json({
-        success: true,
-        message: "Ticket created successfully",
-        ticketId: ticket._id,
-      });
+      res
+        .status(201)
+        .json({ success: true, message: "Ticket created successfully" });
     } catch (err) {
       res.status(400).json({ success: false, error: err.message });
     }
@@ -103,13 +71,14 @@ class TicketController {
    *                 $ref: '#/components/schemas/Ticket'
    *       500:
    *         description: Internal server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
    */
   async getTickets(req, res) {
     try {
-      const tickets = await Ticket.find()
-        .populate("customerID", "firstName lastName emailAddress")
-        .populate("departmentID", "departmentName")
-        .populate("staffID", "firstName lastName");
+      const tickets = await Ticket.find();
       res.json(tickets);
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -138,20 +107,22 @@ class TicketController {
    *               $ref: '#/components/schemas/Ticket'
    *       404:
    *         description: Ticket not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
    *       500:
    *         description: Internal server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
    */
   async getTicketById(req, res) {
     const { id } = req.params;
     try {
-      const ticket = await Ticket.findById(id)
-        .populate("customerID", "firstName lastName emailAddress")
-        .populate("departmentID", "departmentName")
-        .populate("staffID", "firstName lastName");
-
-      if (!ticket) {
-        return res.status(404).json({ message: "Ticket not found" });
-      }
+      const ticket = await Ticket.findById(id);
+      if (!ticket) return res.status(404).json({ message: "Ticket not found" });
 
       res.json(ticket);
     } catch (err) {
@@ -179,54 +150,43 @@ class TicketController {
    *           schema:
    *             $ref: '#/components/schemas/TicketUpdateInput'
    *           example:
-   *             status: "Approved"
-   *             feedback: "Issue resolved successfully"
+   *             status: "Solved"
+   *             feedback: "Issue resolved by updating user permissions"
    *     responses:
    *       200:
    *         description: Ticket updated successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/SuccessResponse'
    *       404:
    *         description: Ticket not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
    *       500:
    *         description: Internal server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
    */
   async updateTicket(req, res) {
     const { id } = req.params;
 
     try {
       let ticket = await Ticket.findById(id);
-      if (!ticket) {
-        return res.status(404).json({ message: "Ticket not found" });
-      }
+      if (!ticket) return res.status(404).json({ message: "Ticket not found" });
 
-      const oldStatus = ticket.status;
       Object.assign(ticket, req.body);
 
-      // Send notification if status changed
-      if (req.body.status && oldStatus !== req.body.status) {
-        await this.#sendTicketNotification(
-          ticket.customerID,
-          ticket,
-          ticket.departmentID
-        );
-      }
-
-      // Set closedDate if ticket is being approved or rejected
       if (req.body.status === "Approved" || req.body.status === "Rejected") {
         ticket.closedDate = new Date();
       }
 
       await ticket.save();
-
-      const updatedTicket = await Ticket.findById(id)
-        .populate("customerID", "firstName lastName emailAddress")
-        .populate("departmentID", "departmentName")
-        .populate("staffID", "firstName lastName");
-
-      res.json({
-        success: true,
-        message: "Ticket updated successfully",
-        ticket: updatedTicket,
-      });
+      res.json({ success: true, message: "Ticket updated successfully" });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -258,55 +218,50 @@ class TicketController {
    *                 type: string
    *               staffID:
    *                 type: string
+   *           example:
+   *             rejectionReason: "Issue cannot be reproduced"
+   *             staffID: "60c72b2f9b1e8c001f5f7c6f"
    *     responses:
    *       200:
    *         description: Ticket rejected successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/SuccessResponse'
    *       404:
    *         description: Ticket not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
    *       500:
    *         description: Internal server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
    */
   async rejectTicket(req, res) {
     const { id } = req.params;
     const { rejectionReason, staffID } = req.body;
 
     if (!rejectionReason) {
-      return res.status(400).json({
-        success: false,
-        message: "Rejection reason is required",
-      });
+      return res
+        .status(400)
+        .json({ success: false, message: "Rejection reason is required" });
     }
 
     try {
       let ticket = await Ticket.findById(id);
-      if (!ticket) {
-        return res.status(404).json({ message: "Ticket not found" });
-      }
+      if (!ticket) return res.status(404).json({ message: "Ticket not found" });
 
       ticket.status = "Rejected";
       ticket.rejectionReason = rejectionReason;
       ticket.closedDate = new Date();
       if (staffID) ticket.staffID = staffID;
 
-      // Send rejection notification
-      await this.#sendTicketNotification(
-        ticket.customerID,
-        ticket,
-        ticket.departmentID
-      );
-
       await ticket.save();
-
-      const updatedTicket = await Ticket.findById(id)
-        .populate("customerID", "firstName lastName emailAddress")
-        .populate("departmentID", "departmentName")
-        .populate("staffID", "firstName lastName");
-
-      res.json({
-        success: true,
-        message: "Ticket rejected successfully",
-        ticket: updatedTicket,
-      });
+      res.json({ success: true, message: "Ticket rejected successfully" });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -328,25 +283,31 @@ class TicketController {
    *     responses:
    *       200:
    *         description: Ticket deleted successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/SuccessResponse'
    *       404:
    *         description: Ticket not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
    *       500:
    *         description: Internal server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
    */
   async deleteTicket(req, res) {
     const { id } = req.params;
 
     try {
       const ticket = await Ticket.findByIdAndDelete(id);
-      if (!ticket) {
-        return res.status(404).json({ message: "Ticket not found" });
-      }
+      if (!ticket) return res.status(404).json({ message: "Ticket not found" });
 
-      res.json({
-        success: true,
-        message: "Ticket deleted successfully",
-        ticketId: id,
-      });
+      res.json({ success: true, message: "Ticket deleted successfully" });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -368,8 +329,18 @@ class TicketController {
    *     responses:
    *       200:
    *         description: A list of recent rejected tickets
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: array
+   *               items:
+   *                 $ref: '#/components/schemas/Ticket'
    *       500:
    *         description: Internal server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
    */
   async getRecentRejectedTickets(req, res) {
     const { staffId } = req.params;
@@ -379,11 +350,7 @@ class TicketController {
         status: "Rejected",
       })
         .sort({ closedDate: -1 })
-        .limit(5)
-        .populate("customerID", "firstName lastName emailAddress")
-        .populate("departmentID", "departmentName")
-        .populate("staffID", "firstName lastName");
-
+        .limit(5);
       res.json(recentRejectedTickets);
     } catch (err) {
       res.status(500).json({ error: err.message });
