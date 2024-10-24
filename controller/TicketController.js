@@ -1,6 +1,7 @@
 // controllers/TicketController.js
 
 const { Ticket } = require("../model/TicketModel");
+const mongoose = require("mongoose");
 
 class TicketController {
   /**
