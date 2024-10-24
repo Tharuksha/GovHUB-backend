@@ -366,6 +366,7 @@ const departmentRoutes = require("./routes/DepartmentRoutes");
 const DashboardRoutes = require("./routes/DashboardRoutes");
 const announcementsRouter = require("./routes/announcementsRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const emailRoutes = require("./routes/emailRoutes");
 
 app.use("/api/customers", customerRoutes);
 app.use("/api/staff", staffRoutes);
@@ -374,10 +375,11 @@ app.use("/api/departments", departmentRoutes);
 app.use("/api/Dashboard", DashboardRoutes);
 app.use("/api/announcements", announcementsRouter);
 app.use("/api/messages", messageRoutes);
+app.use("/api/email", emailRoutes);
 
 // Root endpoint for basic information
 app.get("/", (req, res) => {
-  res.send("Welcome to GovDB API");
+  res.send("Welcome to GovDB API - Maintained BY T N Wickramarachchi");
 });
 
 // Error handling middleware (optional but recommended)
@@ -398,6 +400,9 @@ app.listen(PORT, () => {
   console.log("\t-> /api/tickets");
   console.log("\t-> /api/departments");
   console.log("\t-> /api/Dashboard");
+  console.log("\t-> /api/announcements");
+  console.log("\t-> /api/messages");
+  console.log("\t-> /api/email");
   console.log(
     `\nSwagger documentation available at https://govhub-backend.tharuksha.com/api-docs`
   );
