@@ -1,6 +1,6 @@
 // controllers/DepartmentController.js
 
-const { Department } = require("../model/Department");
+const { Department } = require("../model/DepartmentModel");
 
 class DepartmentController {
   /**

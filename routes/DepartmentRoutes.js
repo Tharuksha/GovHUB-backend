@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const departmentController = require("../controller/Department");
+const departmentController = require("../controller/DepartmentController");
 
 // Add a new department
 router.post("/", departmentController.addDepartment);

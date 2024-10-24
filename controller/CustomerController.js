@@ -1,6 +1,6 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { Customer } = require("../model/Customer");
+const { Customer } = require("../model/CustomerModel");
 const { sendWelcomeEmail } = require("../services/emailService");
 
 class CustomerController {

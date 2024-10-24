@@ -1,7 +1,7 @@
-const { Department } = require("../model/Department");
-const { Ticket } = require("../model/Ticket");
-const { Staff } = require("../model/Staff");
-const { Customer } = require("../model/Customer");
+const { Department } = require("../model/DepartmentModel");
+const { Ticket } = require("../model/TicketModel");
+const { Staff } = require("../model/StaffModel");
+const { Customer } = require("../model/CustomerModel");
 const moment = require("moment");
 
 class DashboardController {
