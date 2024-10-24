@@ -359,12 +359,12 @@ const swaggerDocs = swaggerJsDoc(swaggerOptions);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // Routes
-const customerRoutes = require("./routes/Customer");
-const staffRoutes = require("./routes/Staff");
-const ticketRoutes = require("./routes/Ticket");
-const departmentRoutes = require("./routes/Department");
-const DashboardRoutes = require("./routes/Dashboard");
-const announcementsRouter = require("./routes/announcements");
+const customerRoutes = require("./routes/CustomerRoutes");
+const staffRoutes = require("./routes/StaffRoutes");
+const ticketRoutes = require("./routes/TicketRoutes");
+const departmentRoutes = require("./routes/DepartmentRoutes");
+const DashboardRoutes = require("./routes/DashboardRoutes");
+const announcementsRouter = require("./routes/announcementsRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 
 app.use("/api/customers", customerRoutes);
