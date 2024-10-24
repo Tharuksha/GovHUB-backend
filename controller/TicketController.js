@@ -356,6 +356,194 @@ class TicketController {
       res.status(500).json({ error: err.message });
     }
   }
+
+  async getTicketsByDepartment(req, res) {
+    try {
+      const { departmentId } = req.params;
+
+      // Validate department ID
+      if (!mongoose.Types.ObjectId.isValid(departmentId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid department ID format",
+        });
+      }
+
+      // Check if department exists
+      const departmentExists = await Department.findById(departmentId);
+      if (!departmentExists) {
+        return res.status(404).json({
+          success: false,
+          message: "Department not found",
+        });
+      }
+
+      // Get current date at midnight
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+
+      // Find tickets for the department
+      const tickets = await Ticket.find({
+        departmentID: departmentId,
+        appointmentDate: { $gte: startOfDay },
+      })
+        .populate([
+          {
+            path: "customerID",
+            select: "firstName lastName emailAddress phoneNumber -_id",
+          },
+          {
+            path: "departmentID",
+            select: "departmentName operatingHours -_id",
+          },
+        ])
+        .sort({ appointmentDateTime: 1 });
+
+      // Format response
+      const formattedTickets = tickets.map((ticket) => ({
+        id: ticket._id,
+        customer: ticket.customerID,
+        department: ticket.departmentID,
+        issueDescription: ticket.issueDescription,
+        notes: ticket.notes,
+        appointmentDate: ticket.appointmentDate,
+        appointmentTime: ticket.appointmentTime,
+        status: ticket.status,
+        createdAt: ticket.createdAt,
+      }));
+
+      return res.status(200).json({
+        success: true,
+        count: tickets.length,
+        data: formattedTickets,
+      });
+    } catch (error) {
+      console.error("Error in getTicketsByDepartment:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Error retrieving tickets",
+        error: error.message,
+      });
+    }
+  }
+
+  // Get ticket slots availability
+  async getTicketAvailability(req, res) {
+    try {
+      const { departmentId, date } = req.params;
+
+      // Validate department ID
+      if (!mongoose.Types.ObjectId.isValid(departmentId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid department ID format",
+        });
+      }
+
+      // Validate date format
+      const selectedDate = new Date(date);
+      if (isNaN(selectedDate.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid date format",
+        });
+      }
+
+      // Get department operating hours
+      const department = await Department.findById(departmentId);
+      if (!department) {
+        return res.status(404).json({
+          success: false,
+          message: "Department not found",
+        });
+      }
+
+      // Set start and end of selected date
+      const startOfDay = new Date(selectedDate);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const endOfDay = new Date(selectedDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      // Get existing appointments for the date
+      const existingAppointments = await Ticket.find({
+        departmentID: departmentId,
+        appointmentDateTime: {
+          $gte: startOfDay,
+          $lte: endOfDay,
+        },
+      }).select("appointmentDateTime");
+
+      // Generate all possible 30-minute slots within operating hours
+      const slots = [];
+      const startHour = 8; // Assuming start time is 8 AM
+      const endHour = startHour + (department.operatingHours || 8);
+
+      for (let hour = startHour; hour < endHour; hour++) {
+        for (let minute of [0, 30]) {
+          const slotTime = new Date(selectedDate);
+          slotTime.setHours(hour, minute, 0, 0);
+
+          // Skip lunch hour (12-1 PM)
+          if (hour === 12) continue;
+
+          const isBooked = existingAppointments.some((appointment) => {
+            return (
+              appointment.appointmentDateTime.getTime() === slotTime.getTime()
+            );
+          });
+
+          slots.push({
+            time: slotTime.toISOString(),
+            isAvailable: !isBooked,
+          });
+        }
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          departmentName: department.departmentName,
+          operatingHours: {
+            start: `${startHour}:00`,
+            end: `${endHour}:00`,
+          },
+          slots,
+        },
+      });
+    } catch (error) {
+      console.error("Error in getTicketAvailability:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Error checking availability",
+        error: error.message,
+      });
+    }
+  }
+
+  // Helper method to validate ticket data
+  validateTicketData(data) {
+    const errors = [];
+
+    if (!data.customerID) errors.push("Customer ID is required");
+    if (!data.departmentID) errors.push("Department ID is required");
+    if (!data.issueDescription) errors.push("Issue description is required");
+    if (!data.notes) errors.push("Notes are required");
+    if (!data.appointmentDate) errors.push("Appointment date is required");
+    if (!data.appointmentTime) errors.push("Appointment time is required");
+
+    return errors;
+  }
+
+  // Helper method to check if slot is available
+  async isSlotAvailable(departmentId, appointmentDateTime) {
+    const existingAppointment = await Ticket.findOne({
+      departmentID: departmentId,
+      appointmentDateTime,
+    });
+
+    return !existingAppointment;
+  }
 }
 
 module.exports = new TicketController();
