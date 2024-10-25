@@ -21,7 +21,7 @@ const ticketSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["Pending", "Approved", "Rejected"],
+    enum: ["Pending", "Approved", "Rejected", "Cancelled"],
     default: "Pending",
   },
   createdDate: {
@@ -30,12 +30,24 @@ const ticketSchema = new mongoose.Schema({
   },
   appointmentDate: {
     type: Date,
+    required: true,
+  },
+  appointmentTime: {
+    type: String,
+    required: true,
+  },
+  appointmentDateTime: {
+    type: Date,
+    required: true,
   },
   closedDate: {
     type: Date,
   },
   notes: {
     type: String,
+    required: true,
+    minlength: [10, "Notes must be at least 10 characters long"],
+    maxlength: [500, "Notes cannot exceed 500 characters"],
   },
   feedback: {
     type: String,
@@ -44,6 +56,9 @@ const ticketSchema = new mongoose.Schema({
     type: String,
   },
 });
+
+// Add index for faster availability checks
+ticketSchema.index({ departmentID: 1, appointmentDateTime: 1, status: 1 });
 
 const Ticket = mongoose.model("Ticket", ticketSchema);
 
