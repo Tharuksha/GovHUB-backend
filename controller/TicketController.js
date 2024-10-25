@@ -1,6 +1,6 @@
 // controllers/TicketController.js
 
-const { Ticket } = require("../model/Ticket");
+const { Ticket } = require("../model/TicketModel");
 
 class TicketController {
   /**
