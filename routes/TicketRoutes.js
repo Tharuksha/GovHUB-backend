@@ -175,15 +175,4 @@ router.get(
   ticketController.getRecentRejectedTickets
 );
 
-router.get(
-  "/department/:departmentId",
-  ticketController.getTicketsByDepartment
-);
-
-// Get availability for a specific date
-router.get(
-  "/availability/:departmentId/:date",
-  ticketController.getTicketAvailability
-);
-
 module.exports = router;
