@@ -3,56 +3,13 @@ const moment = require("moment");
 
 class TicketController {
   /**
-   * Check if a specific time slot is available within a 15-minute window
+   * Check if a specific time slot is available
    */
   async checkAvailability(req, res) {
     const { date, time } = req.body;
     try {
       // Convert date and time to a moment object
       const requestedDateTime = moment(`${date} ${time}`, "YYYY-MM-DD HH:mm");
-
-      // Validate operating hours (8:00 AM to 3:50 PM)
-      const hour = requestedDateTime.hour();
-      const minute = requestedDateTime.minute();
-
-      if (hour < 8 || (hour === 15 && minute > 50) || hour > 15) {
-        return res.json({
-          available: false,
-          message: "Time must be between 8:00 AM and 3:50 PM.",
-        });
-      }
-
-      // Validate 15-minute intervals
-      if (minute % 15 !== 0) {
-        return res.json({
-          available: false,
-          message: "Appointments must be scheduled at 15-minute intervals.",
-        });
-      }
-
-      // Validate weekend bookings
-      if (requestedDateTime.day() === 0 || requestedDateTime.day() === 6) {
-        return res.json({
-          available: false,
-          message: "Appointments cannot be scheduled on weekends.",
-        });
-      }
-
-      // Validate booking is not in the past
-      if (requestedDateTime.isBefore(moment())) {
-        return res.json({
-          available: false,
-          message: "Cannot book appointments in the past.",
-        });
-      }
-
-      // Validate booking is not more than 3 months in advance
-      if (requestedDateTime.isAfter(moment().add(3, "months"))) {
-        return res.json({
-          available: false,
-          message: "Cannot book appointments more than 3 months in advance.",
-        });
-      }
 
       // Find any appointments for this date and time
       const existingAppointment = await Ticket.findOne({
@@ -89,7 +46,7 @@ class TicketController {
   }
 
   /**
-   * Add a new ticket with validations
+   * Add a new ticket
    */
   async addTicket(req, res) {
     const ticketData = req.body;
@@ -97,53 +54,6 @@ class TicketController {
       ticketData.appointmentDateTime ||
         `${ticketData.appointmentDate} ${ticketData.appointmentTime}`
     );
-
-    // Validate operating hours (8:00 AM to 3:50 PM)
-    const bookingHour = bookingTime.hour();
-    const bookingMinute = bookingTime.minute();
-
-    if (
-      bookingHour < 8 ||
-      (bookingHour === 15 && bookingMinute > 50) ||
-      bookingHour > 15
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Booking must be between 8:00 AM and 3:50 PM.",
-      });
-    }
-
-    // Validate 15-minute intervals
-    if (bookingMinute % 15 !== 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Appointments must be scheduled at 15-minute intervals.",
-      });
-    }
-
-    // Validate weekend bookings
-    if (bookingTime.day() === 0 || bookingTime.day() === 6) {
-      return res.status(400).json({
-        success: false,
-        message: "Appointments cannot be scheduled on weekends.",
-      });
-    }
-
-    // Validate booking is not in the past
-    if (bookingTime.isBefore(moment())) {
-      return res.status(400).json({
-        success: false,
-        message: "Cannot book appointments in the past.",
-      });
-    }
-
-    // Validate booking is not more than 3 months in advance
-    if (bookingTime.isAfter(moment().add(3, "months"))) {
-      return res.status(400).json({
-        success: false,
-        message: "Cannot book appointments more than 3 months in advance.",
-      });
-    }
 
     try {
       // Check for existing appointments
@@ -283,51 +193,9 @@ class TicketController {
         });
       }
 
-      // If updating appointment time, validate the new time
+      // If updating appointment time
       if (req.body.appointmentDateTime) {
         const newTime = moment(req.body.appointmentDateTime);
-        const hour = newTime.hour();
-        const minute = newTime.minute();
-
-        // Validate operating hours
-        if (hour < 8 || (hour === 15 && minute > 50) || hour > 15) {
-          return res.status(400).json({
-            success: false,
-            message: "Booking must be between 8:00 AM and 3:50 PM.",
-          });
-        }
-
-        // Validate 15-minute intervals
-        if (minute % 15 !== 0) {
-          return res.status(400).json({
-            success: false,
-            message: "Appointments must be scheduled at 15-minute intervals.",
-          });
-        }
-
-        // Validate weekend bookings
-        if (newTime.day() === 0 || newTime.day() === 6) {
-          return res.status(400).json({
-            success: false,
-            message: "Appointments cannot be scheduled on weekends.",
-          });
-        }
-
-        // Validate booking is not in the past
-        if (newTime.isBefore(moment())) {
-          return res.status(400).json({
-            success: false,
-            message: "Cannot book appointments in the past.",
-          });
-        }
-
-        // Validate booking is not more than 3 months in advance
-        if (newTime.isAfter(moment().add(3, "months"))) {
-          return res.status(400).json({
-            success: false,
-            message: "Cannot book appointments more than 3 months in advance.",
-          });
-        }
 
         // Check for existing appointments at the new time
         const existingAppointment = await Ticket.findOne({
