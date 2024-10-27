@@ -1,3 +1,5 @@
+// routes/TicketRoutes.js
+
 const express = require("express");
 const router = express.Router();
 const ticketController = require("../controller/TicketController");
@@ -8,6 +10,46 @@ const ticketController = require("../controller/TicketController");
  *   name: Tickets
  *   description: Ticket management
  */
+
+/**
+ * @swagger
+ * /api/tickets/check-availability:
+ *   post:
+ *     summary: Check availability of a specific time slot within a 15-minute window
+ *     tags: [Tickets]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - date
+ *               - time
+ *             properties:
+ *               date:
+ *                 type: string
+ *                 format: date
+ *                 description: Date in YYYY-MM-DD format
+ *               time:
+ *                 type: string
+ *                 description: Time in HH:mm format
+ *     responses:
+ *       200:
+ *         description: Availability status of the slot
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 available:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/check-availability", ticketController.checkAvailability);
 
 /**
  * @swagger
@@ -59,7 +101,7 @@ router.get("/", ticketController.getTickets);
  *           type: string
  *     responses:
  *       200:
- *         description: A single ticket
+ *         description: Ticket details
  *       404:
  *         description: Ticket not found
  *       500:
@@ -129,7 +171,6 @@ router.put("/:id", ticketController.updateTicket);
  *         description: Internal server error
  */
 router.put("/:id/reject", ticketController.rejectTicket);
-
 /**
  * @swagger
  * /api/tickets/{id}:

@@ -1,3 +1,5 @@
+// models/TicketModel.js
+
 const mongoose = require("mongoose");
 
 const ticketSchema = new mongoose.Schema({
@@ -21,7 +23,7 @@ const ticketSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["Pending", "Approved", "Rejected", "Cancelled"],
+    enum: ["Pending", "Approved", "Rejected"],
     default: "Pending",
   },
   createdDate: {
@@ -34,20 +36,15 @@ const ticketSchema = new mongoose.Schema({
   },
   appointmentTime: {
     type: String,
-    required: true,
   },
   appointmentDateTime: {
     type: Date,
-    required: true,
   },
   closedDate: {
     type: Date,
   },
   notes: {
     type: String,
-    required: true,
-    minlength: [10, "Notes must be at least 10 characters long"],
-    maxlength: [500, "Notes cannot exceed 500 characters"],
   },
   feedback: {
     type: String,
@@ -57,8 +54,11 @@ const ticketSchema = new mongoose.Schema({
   },
 });
 
-// Add index for faster availability checks
-ticketSchema.index({ departmentID: 1, appointmentDateTime: 1, status: 1 });
+// Add indexes for better query performance
+ticketSchema.index({ appointmentDate: 1, appointmentTime: 1, status: 1 });
+ticketSchema.index({ appointmentDateTime: 1, status: 1 });
+ticketSchema.index({ customerID: 1, appointmentDate: 1 });
+ticketSchema.index({ staffID: 1, status: 1 });
 
 const Ticket = mongoose.model("Ticket", ticketSchema);
 

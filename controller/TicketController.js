@@ -1,357 +1,298 @@
 // controllers/TicketController.js
 
 const { Ticket } = require("../model/TicketModel");
+const moment = require("moment");
 
 class TicketController {
   /**
-   * @swagger
-   * /api/tickets:
-   *   post:
-   *     summary: Add a new ticket
-   *     tags: [Tickets]
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             $ref: '#/components/schemas/TicketInput'
-   *           example:
-   *             customerID: "60c72b2f9b1e8c001f5f7c6e"
-   *             staffID: "60c72b2f9b1e8c001f5f7c6f"
-   *             departmentID: "60c72b2f9b1e8c001f5f7c70"
-   *             issueDescription: "Cannot log into the system with valid credentials."
-   *             status: "Pending"
-   *             appointmentDate: "2024-10-01T09:00:00Z"
-   *     responses:
-   *       201:
-   *         description: Ticket created successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/SuccessResponse'
-   *       400:
-   *         description: Error creating ticket
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
-   *       500:
-   *         description: Internal server error
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
+   * Check if a specific time slot is available within a 15-minute window
    */
-  async addTicket(req, res) {
-    const ticket = new Ticket(req.body);
+  async checkAvailability(req, res) {
+    const { date, time } = req.body;
     try {
-      await ticket.save();
-      res
-        .status(201)
-        .json({ success: true, message: "Ticket created successfully" });
-    } catch (err) {
-      res.status(400).json({ success: false, error: err.message });
+      // Convert date and time to a moment object
+      const requestedDateTime = moment(`${date} ${time}`, "YYYY-MM-DD HH:mm");
+
+      // Find any appointments for this date and time
+      const existingAppointment = await Ticket.findOne({
+        $or: [
+          {
+            appointmentDateTime: requestedDateTime.toDate(),
+          },
+          {
+            appointmentDate: moment(date).startOf("day").toDate(),
+            appointmentTime: time,
+          },
+        ],
+        status: { $ne: "Rejected" },
+      });
+
+      if (existingAppointment) {
+        return res.json({
+          available: false,
+          message: "This slot is already booked.",
+        });
+      }
+
+      return res.json({
+        available: true,
+        message: "Time slot is available",
+      });
+    } catch (error) {
+      console.error("Error checking availability:", error);
+      res.status(500).json({
+        success: false,
+        error: "Server error occurred.",
+      });
     }
   }
 
   /**
-   * @swagger
-   * /api/tickets:
-   *   get:
-   *     summary: Retrieve a list of all tickets
-   *     tags: [Tickets]
-   *     responses:
-   *       200:
-   *         description: A list of tickets
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: array
-   *               items:
-   *                 $ref: '#/components/schemas/Ticket'
-   *       500:
-   *         description: Internal server error
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
+   * Add a new ticket with validations
+   */
+  async addTicket(req, res) {
+    const ticketData = req.body;
+    const bookingTime = moment(
+      ticketData.appointmentDateTime ||
+        `${ticketData.appointmentDate} ${ticketData.appointmentTime}`
+    );
+
+    const OPENING_HOUR = 9;
+    const CLOSING_HOUR = 17;
+    const bookingHour = bookingTime.hour();
+
+    if (bookingHour < OPENING_HOUR || bookingHour >= CLOSING_HOUR) {
+      return res.status(400).json({
+        success: false,
+        message: "Booking must be within operating hours.",
+      });
+    }
+
+    try {
+      // Check for existing appointments
+      const existingAppointment = await Ticket.findOne({
+        $or: [
+          {
+            appointmentDateTime: bookingTime.toDate(),
+          },
+          {
+            appointmentDate: bookingTime.startOf("day").toDate(),
+            appointmentTime: bookingTime.format("HH:mm:ss"),
+          },
+        ],
+        status: { $ne: "Rejected" },
+      });
+
+      if (existingAppointment) {
+        return res.status(400).json({
+          success: false,
+          message: "This slot is already booked.",
+        });
+      }
+
+      // Save ticket if slot is available
+      const newTicket = new Ticket({
+        ...ticketData,
+        appointmentDateTime: bookingTime.toDate(),
+        appointmentDate: bookingTime.startOf("day").toDate(),
+        appointmentTime: bookingTime.format("HH:mm:ss"),
+      });
+
+      await newTicket.save();
+
+      res.status(201).json({
+        success: true,
+        message: "Ticket created successfully",
+      });
+    } catch (err) {
+      console.error("Error creating ticket:", err);
+      res.status(500).json({
+        success: false,
+        error: "Server error occurred.",
+      });
+    }
+  }
+
+  /**
+   * Retrieve all tickets
    */
   async getTickets(req, res) {
     try {
-      const tickets = await Ticket.find();
-      res.json(tickets);
+      const tickets = await Ticket.find().sort({ appointmentDate: -1 }).lean(); // Use lean() to get plain JavaScript objects
+
+      // Format the response to match the required structure
+      const formattedTickets = tickets.map((ticket) => ({
+        _id: ticket._id,
+        customerID: ticket.customerID,
+        departmentID: ticket.departmentID,
+        issueDescription: ticket.issueDescription,
+        status: ticket.status,
+        createdDate: ticket.createdDate,
+        appointmentDate: ticket.appointmentDate,
+        notes: ticket.notes,
+        __v: ticket.__v,
+        ...(ticket.closedDate && { closedDate: ticket.closedDate }),
+        ...(ticket.feedback && { feedback: ticket.feedback }),
+        ...(ticket.staffID && { staffID: ticket.staffID }),
+        ...(ticket.appointmentTime && {
+          appointmentTime: ticket.appointmentTime,
+        }),
+        ...(ticket.appointmentDateTime && {
+          appointmentDateTime: ticket.appointmentDateTime,
+        }),
+      }));
+
+      res.json(formattedTickets);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   }
 
   /**
-   * @swagger
-   * /api/tickets/{id}:
-   *   get:
-   *     summary: Retrieve a single ticket by ID
-   *     tags: [Tickets]
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         schema:
-   *           type: string
-   *         required: true
-   *         description: The ticket ID
-   *     responses:
-   *       200:
-   *         description: Ticket details
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Ticket'
-   *       404:
-   *         description: Ticket not found
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
-   *       500:
-   *         description: Internal server error
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
+   * Retrieve a single ticket by ID
    */
   async getTicketById(req, res) {
     const { id } = req.params;
     try {
-      const ticket = await Ticket.findById(id);
-      if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+      const ticket = await Ticket.findById(id).lean();
 
-      res.json(ticket);
+      if (!ticket) {
+        return res.status(404).json({
+          success: false,
+          message: "Ticket not found",
+        });
+      }
+
+      // Format the response to match the required structure
+      const formattedTicket = {
+        _id: ticket._id,
+        customerID: ticket.customerID,
+        departmentID: ticket.departmentID,
+        issueDescription: ticket.issueDescription,
+        status: ticket.status,
+        createdDate: ticket.createdDate,
+        appointmentDate: ticket.appointmentDate,
+        notes: ticket.notes,
+        __v: ticket.__v,
+        ...(ticket.closedDate && { closedDate: ticket.closedDate }),
+        ...(ticket.feedback && { feedback: ticket.feedback }),
+        ...(ticket.staffID && { staffID: ticket.staffID }),
+        ...(ticket.appointmentTime && {
+          appointmentTime: ticket.appointmentTime,
+        }),
+        ...(ticket.appointmentDateTime && {
+          appointmentDateTime: ticket.appointmentDateTime,
+        }),
+      };
+
+      res.json(formattedTicket);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   }
 
   /**
-   * @swagger
-   * /api/tickets/{id}:
-   *   put:
-   *     summary: Update an existing ticket
-   *     tags: [Tickets]
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         schema:
-   *           type: string
-   *         required: true
-   *         description: The ticket ID
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             $ref: '#/components/schemas/TicketUpdateInput'
-   *           example:
-   *             status: "Solved"
-   *             feedback: "Issue resolved by updating user permissions"
-   *     responses:
-   *       200:
-   *         description: Ticket updated successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/SuccessResponse'
-   *       404:
-   *         description: Ticket not found
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
-   *       500:
-   *         description: Internal server error
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
+   * Update an existing ticket
    */
   async updateTicket(req, res) {
     const { id } = req.params;
 
     try {
       let ticket = await Ticket.findById(id);
-      if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+      if (!ticket) {
+        return res.status(404).json({
+          success: false,
+          message: "Ticket not found",
+        });
+      }
 
-      Object.assign(ticket, req.body);
-
-      if (req.body.status === "Approved" || req.body.status === "Rejected") {
+      // Handle status changes
+      if (
+        req.body.status &&
+        ["Approved", "Rejected"].includes(req.body.status)
+      ) {
         ticket.closedDate = new Date();
       }
 
+      Object.assign(ticket, req.body);
+
+      if (req.body.appointmentDateTime) {
+        const newTime = moment(req.body.appointmentDateTime);
+        ticket.appointmentDate = newTime.startOf("day").toDate();
+        ticket.appointmentTime = newTime.format("HH:mm:ss");
+      }
+
       await ticket.save();
-      res.json({ success: true, message: "Ticket updated successfully" });
+      res.json({
+        success: true,
+        message: "Ticket updated successfully",
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   }
 
   /**
-   * @swagger
-   * /api/tickets/{id}/reject:
-   *   put:
-   *     summary: Reject a ticket
-   *     tags: [Tickets]
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         schema:
-   *           type: string
-   *         required: true
-   *         description: The ticket ID
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             required:
-   *               - rejectionReason
-   *             properties:
-   *               rejectionReason:
-   *                 type: string
-   *               staffID:
-   *                 type: string
-   *           example:
-   *             rejectionReason: "Issue cannot be reproduced"
-   *             staffID: "60c72b2f9b1e8c001f5f7c6f"
-   *     responses:
-   *       200:
-   *         description: Ticket rejected successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/SuccessResponse'
-   *       404:
-   *         description: Ticket not found
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
-   *       500:
-   *         description: Internal server error
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
-   */
-  async rejectTicket(req, res) {
-    const { id } = req.params;
-    const { rejectionReason, staffID } = req.body;
-
-    if (!rejectionReason) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Rejection reason is required" });
-    }
-
-    try {
-      let ticket = await Ticket.findById(id);
-      if (!ticket) return res.status(404).json({ message: "Ticket not found" });
-
-      ticket.status = "Rejected";
-      ticket.rejectionReason = rejectionReason;
-      ticket.closedDate = new Date();
-      if (staffID) ticket.staffID = staffID;
-
-      await ticket.save();
-      res.json({ success: true, message: "Ticket rejected successfully" });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  }
-
-  /**
-   * @swagger
-   * /api/tickets/{id}:
-   *   delete:
-   *     summary: Delete a ticket by ID
-   *     tags: [Tickets]
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         schema:
-   *           type: string
-   *         required: true
-   *         description: The ticket ID
-   *     responses:
-   *       200:
-   *         description: Ticket deleted successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/SuccessResponse'
-   *       404:
-   *         description: Ticket not found
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
-   *       500:
-   *         description: Internal server error
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
+   * Delete a ticket by ID
    */
   async deleteTicket(req, res) {
     const { id } = req.params;
 
     try {
       const ticket = await Ticket.findByIdAndDelete(id);
-      if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+      if (!ticket) {
+        return res.status(404).json({
+          success: false,
+          message: "Ticket not found",
+        });
+      }
 
-      res.json({ success: true, message: "Ticket deleted successfully" });
+      res.json({
+        success: true,
+        message: "Ticket deleted successfully",
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   }
 
   /**
-   * @swagger
-   * /api/tickets/recentRejected/{staffId}:
-   *   get:
-   *     summary: Retrieve recent rejected tickets for a staff member
-   *     tags: [Tickets]
-   *     parameters:
-   *       - in: path
-   *         name: staffId
-   *         schema:
-   *           type: string
-   *         required: true
-   *         description: The staff ID
-   *     responses:
-   *       200:
-   *         description: A list of recent rejected tickets
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: array
-   *               items:
-   *                 $ref: '#/components/schemas/Ticket'
-   *       500:
-   *         description: Internal server error
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
+   * Retrieve recent rejected tickets for a specific staff member
    */
   async getRecentRejectedTickets(req, res) {
     const { staffId } = req.params;
     try {
-      const recentRejectedTickets = await Ticket.find({
+      const tickets = await Ticket.find({
         staffID: staffId,
         status: "Rejected",
       })
         .sort({ closedDate: -1 })
-        .limit(5);
-      res.json(recentRejectedTickets);
+        .limit(5)
+        .lean();
+
+      // Format the response to match the required structure
+      const formattedTickets = tickets.map((ticket) => ({
+        _id: ticket._id,
+        customerID: ticket.customerID,
+        departmentID: ticket.departmentID,
+        issueDescription: ticket.issueDescription,
+        status: ticket.status,
+        createdDate: ticket.createdDate,
+        appointmentDate: ticket.appointmentDate,
+        notes: ticket.notes,
+        __v: ticket.__v,
+        ...(ticket.closedDate && { closedDate: ticket.closedDate }),
+        ...(ticket.feedback && { feedback: ticket.feedback }),
+        ...(ticket.staffID && { staffID: ticket.staffID }),
+        ...(ticket.appointmentTime && {
+          appointmentTime: ticket.appointmentTime,
+        }),
+        ...(ticket.appointmentDateTime && {
+          appointmentDateTime: ticket.appointmentDateTime,
+        }),
+      }));
+
+      res.json(formattedTickets);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
