@@ -4,36 +4,6 @@ const ticketController = require("../controller/TicketController");
 
 /**
  * @swagger
- * /api/tickets/check-availability:
- *   get:
- *     summary: Check time slot availability
- *     tags: [Tickets]
- *     parameters:
- *       - in: query
- *         name: departmentID
- *         required: true
- *         schema:
- *           type: string
- *       - in: query
- *         name: appointmentDate
- *         required: true
- *         schema:
- *           type: string
- *           format: date
- *       - in: query
- *         name: appointmentTime
- *         required: true
- *         schema:
- *           type: string
- *           format: time
- *     responses:
- *       200:
- *         description: Availability check result
- */
-router.get("/check-availability", ticketController.checkAvailability);
-
-/**
- * @swagger
  * tags:
  *   name: Tickets
  *   description: Ticket management
