@@ -139,40 +139,6 @@ router.put("/:id", ticketController.updateTicket);
 
 /**
  * @swagger
- * /api/tickets/{id}/reject:
- *   put:
- *     summary: Reject a ticket
- *     tags: [Tickets]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - rejectionReason
- *             properties:
- *               rejectionReason:
- *                 type: string
- *               staffID:
- *                 type: string
- *     responses:
- *       200:
- *         description: Ticket rejected successfully
- *       404:
- *         description: Ticket not found
- *       500:
- *         description: Internal server error
- */
-router.put("/:id/reject", ticketController.rejectTicket);
-/**
- * @swagger
  * /api/tickets/{id}:
  *   delete:
  *     summary: Delete a ticket by ID
