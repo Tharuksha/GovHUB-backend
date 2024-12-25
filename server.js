@@ -50,7 +50,7 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: `https://govhub-backend.tharuksha.com`,
+        url: `https://govhub-backend.onrender.com`,
         description: "Development server",
       },
     ],
